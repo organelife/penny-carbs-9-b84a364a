@@ -7,10 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Package, Clock, CheckCircle, XCircle, Truck, MapPin, Phone } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle, XCircle, Truck, MapPin, Phone, ChefHat } from 'lucide-react';
 import BottomNav from '@/components/customer/BottomNav';
 import { calculatePlatformMargin } from '@/lib/priceUtils';
 import OrderRating from '@/components/customer/OrderRating';
+
+interface CookInfo {
+  id: string;
+  kitchen_name: string;
+  mobile_number: string;
+  rating: number | null;
+}
 
 interface OrderItemWithFood extends OrderItem {
   food_item: FoodItem;
@@ -45,6 +52,8 @@ const OrderDetail: React.FC = () => {
   const [orderItems, setOrderItems] = useState<OrderItemWithFood[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [cooksMap, setCooksMap] = useState<Record<string, CookInfo>>({});
+
   useEffect(() => {
     const fetchOrderDetails = async () => {
       if (!user || !orderId) {
@@ -75,6 +84,24 @@ const OrderDetail: React.FC = () => {
 
         if (itemsError) throw itemsError;
         setOrderItems(itemsData as OrderItemWithFood[]);
+
+        // Fetch cook details for assigned cooks
+        const cookIds = [...new Set(
+          (itemsData as OrderItemWithFood[])
+            .map(i => i.assigned_cook_id)
+            .filter(Boolean) as string[]
+        )];
+        if (cookIds.length > 0) {
+          const { data: cooksData } = await supabase
+            .from('cooks')
+            .select('id, kitchen_name, mobile_number, rating')
+            .in('id', cookIds);
+          if (cooksData) {
+            const map: Record<string, CookInfo> = {};
+            cooksData.forEach(c => { map[c.id] = c as CookInfo; });
+            setCooksMap(map);
+          }
+        }
       } catch (error) {
         console.error('Error fetching order details:', error);
       } finally {
@@ -234,11 +261,17 @@ const OrderDetail: React.FC = () => {
                 const itemTotal = customerPrice * item.quantity;
                 return (
                   <div key={item.id} className="flex justify-between border-b pb-3 last:border-0 last:pb-0">
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium">{item.food_item?.name || 'Item'}</p>
                       <p className="text-sm text-muted-foreground">
                         ₹{customerPrice} × {item.quantity}
                       </p>
+                      {item.assigned_cook_id && cooksMap[item.assigned_cook_id] && (
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <ChefHat className="h-3 w-3 text-primary" />
+                          <span>{cooksMap[item.assigned_cook_id].kitchen_name}</span>
+                        </div>
+                      )}
                       {item.special_instructions && (
                         <p className="text-xs text-muted-foreground mt-1">
                           Note: {item.special_instructions}
@@ -260,6 +293,41 @@ const OrderDetail: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Kitchen Details */}
+        {Object.keys(cooksMap).length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ChefHat className="h-4 w-4" />
+                Kitchen Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="space-y-3">
+                {Object.values(cooksMap).map((cook) => (
+                  <div key={cook.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm">{cook.kitchen_name}</p>
+                      {cook.rating != null && cook.rating > 0 && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          ⭐ {Number(cook.rating).toFixed(1)} rating
+                        </p>
+                      )}
+                    </div>
+                    <a
+                      href={`tel:${cook.mobile_number}`}
+                      className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
+                    >
+                      <Phone className="h-3 w-3" />
+                      Call
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Delivery Info */}
         {order.delivery_address && (
