@@ -35,14 +35,17 @@ const NewOrderAlert: React.FC<NewOrderAlertProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onDismiss()}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border-primary/30">
-        <DialogHeader className="bg-gradient-to-r from-primary/10 to-primary/5 -mx-6 -mt-6 px-6 pt-6 pb-4 rounded-t-lg">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center animate-pulse">
-              <Package className="h-4 w-4 text-primary-foreground" />
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto border-0 p-0 overflow-hidden">
+        <DialogHeader className="bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 px-6 pt-6 pb-5">
+          <DialogTitle className="flex items-center gap-3 text-lg text-white">
+            <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center animate-bounce shadow-lg">
+              <Package className="h-5 w-5 text-white" />
             </div>
-            New Delivery Orders!
-            <Badge className="ml-auto bg-primary text-primary-foreground">
+            <div>
+              <span className="block">🚀 New Delivery Orders!</span>
+              <span className="block text-xs font-normal text-white/80">Accept quickly to earn more</span>
+            </div>
+            <Badge className="ml-auto bg-white/25 text-white border-white/30 backdrop-blur-sm text-sm px-3 py-1">
               {orders.length} {orders.length === 1 ? 'Order' : 'Orders'}
             </Badge>
           </DialogTitle>
