@@ -12,6 +12,13 @@ import BottomNav from '@/components/customer/BottomNav';
 import { calculatePlatformMargin } from '@/lib/priceUtils';
 import OrderRating from '@/components/customer/OrderRating';
 
+interface CookInfo {
+  id: string;
+  kitchen_name: string;
+  mobile_number: string;
+  rating: number | null;
+}
+
 interface OrderItemWithFood extends OrderItem {
   food_item: FoodItem;
   assigned_cook_id: string | null;
