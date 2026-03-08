@@ -84,6 +84,24 @@ const OrderDetail: React.FC = () => {
 
         if (itemsError) throw itemsError;
         setOrderItems(itemsData as OrderItemWithFood[]);
+
+        // Fetch cook details for assigned cooks
+        const cookIds = [...new Set(
+          (itemsData as OrderItemWithFood[])
+            .map(i => i.assigned_cook_id)
+            .filter(Boolean) as string[]
+        )];
+        if (cookIds.length > 0) {
+          const { data: cooksData } = await supabase
+            .from('cooks')
+            .select('id, kitchen_name, mobile_number, rating')
+            .in('id', cookIds);
+          if (cooksData) {
+            const map: Record<string, CookInfo> = {};
+            cooksData.forEach(c => { map[c.id] = c as CookInfo; });
+            setCooksMap(map);
+          }
+        }
       } catch (error) {
         console.error('Error fetching order details:', error);
       } finally {
