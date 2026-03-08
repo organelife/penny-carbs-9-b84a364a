@@ -46,6 +46,7 @@ import AdminNavbar from '@/components/admin/AdminNavbar';
 import ImageUpload from '@/components/admin/ImageUpload';
 import ComboFoodsTab from '@/components/admin/ComboFoodsTab';
 import { calculatePlatformMargin } from '@/lib/priceUtils';
+import ViewItemCooksDialog from '@/components/admin/ViewItemCooksDialog';
 
 // Helper to calculate customer price
 const getCustomerPrice = (item: FoodItemWithImages): number => {
@@ -545,6 +546,15 @@ const AdminItems: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <ViewItemCooksDialog
+                        foodItemId={item.id}
+                        foodItemName={item.name}
+                        trigger={
+                          <Button variant="ghost" size="icon" title="View Cooks">
+                            <ChefHat className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
                       <Switch
                         checked={item.is_available}
                         onCheckedChange={() => handleToggleAvailability(item)}
