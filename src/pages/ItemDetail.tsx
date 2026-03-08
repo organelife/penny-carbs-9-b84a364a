@@ -186,6 +186,7 @@ const ItemDetail: React.FC = () => {
 
   // For homemade items with multiple cooks, require cook selection
   const needsCookSelection = isHomemade && availableCooks.length > 1 && !selectedCookId;
+  const noCooksAvailable = isHomemade && availableCooks.length === 0 && !isLoading;
 
   return (
     <div className="min-h-screen bg-background pb-24">
