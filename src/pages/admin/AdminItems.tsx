@@ -546,6 +546,15 @@ const AdminItems: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <ViewItemCooksDialog
+                        foodItemId={item.id}
+                        foodItemName={item.name}
+                        trigger={
+                          <Button variant="ghost" size="icon" title="View Cooks">
+                            <ChefHat className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
                       <Switch
                         checked={item.is_available}
                         onCheckedChange={() => handleToggleAvailability(item)}
