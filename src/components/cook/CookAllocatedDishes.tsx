@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { ChefHat, Leaf, IndianRupee, Check, X } from 'lucide-react';
+import DishFeaturesManager from './DishFeaturesManager';
 
 const CookAllocatedDishes: React.FC = () => {
   const { data: allocatedDishes, isLoading } = useCookAllocatedDishes();
@@ -110,6 +111,7 @@ const CookAllocatedDishes: React.FC = () => {
                         />
                         <span className="text-[10px] text-muted-foreground">Coming Soon</span>
                       </div>
+                      <DishFeaturesManager cookDishId={dish.id} />
                     </div>
                   </div>
 
