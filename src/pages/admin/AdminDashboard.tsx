@@ -152,30 +152,20 @@ const AdminDashboard: React.FC = () => {
 
         {/* Module Cards */}
         <h3 className="mb-4 text-lg font-semibold">Operational Modules</h3>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {modules.map((module) => (
             <Card 
               key={module.id}
-              className="cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:scale-[1.02]"
+              className="cursor-pointer transition-all hover:shadow-md"
               onClick={() => navigate(module.path)}
             >
-              <div className={`bg-gradient-to-br ${module.gradient} p-6 text-white`}>
-                <module.icon className="h-12 w-12 mb-4" />
-                <CardTitle className="text-xl text-white">{module.title}</CardTitle>
-              </div>
-              <CardContent className="p-4">
-                <CardDescription className="text-sm mb-4">
-                  {module.description}
-                </CardDescription>
-                <div className="flex flex-wrap gap-2">
-                  {module.features.map((feature) => (
-                    <span 
-                      key={feature}
-                      className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
-                    >
-                      {feature}
-                    </span>
-                  ))}
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className={`rounded-xl bg-gradient-to-br ${module.gradient} p-3 text-white`}>
+                  <module.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="font-medium">{module.title}</h4>
+                  <p className="text-sm text-muted-foreground">{module.description.split(',')[0]}</p>
                 </div>
               </CardContent>
             </Card>
