@@ -43,7 +43,6 @@ const HomemadeOrder: React.FC = () => {
   const { addToCart } = useCart();
   const { selectedPanchayat } = useLocation();
   const { requireAuth, showLoginDialog, setShowLoginDialog, onLoginSuccess } = useAuthCheck();
-  const { requireAuth, showLoginDialog, setShowLoginDialog, onLoginSuccess } = useAuthCheck();
 
   const [items, setItems] = useState<HomemadeItem[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
