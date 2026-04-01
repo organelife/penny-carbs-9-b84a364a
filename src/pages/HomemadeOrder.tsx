@@ -41,6 +41,8 @@ const getCustomerPrice = (item: HomemadeItem): number => {
 const HomemadeOrder: React.FC = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { selectedPanchayat } = useLocation();
+  const { requireAuth, showLoginDialog, setShowLoginDialog, onLoginSuccess } = useAuthCheck();
   const { requireAuth, showLoginDialog, setShowLoginDialog, onLoginSuccess } = useAuthCheck();
 
   const [items, setItems] = useState<HomemadeItem[]>([]);
