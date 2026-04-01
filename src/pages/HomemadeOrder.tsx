@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useLocation } from '@/contexts/LocationContext';
 import { useCart } from '@/contexts/CartContext';
 import { useAuthCheck } from '@/hooks/useAuthCheck';
 import CustomerLoginDialog from '@/components/customer/CustomerLoginDialog';
