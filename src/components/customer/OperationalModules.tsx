@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, ChefHat, Home } from 'lucide-react';
 import type { ServiceType } from '@/types/database';
+import { useActiveServiceTypes } from '@/hooks/useServiceModules';
 
 interface ServiceModule {
   id: ServiceType;
