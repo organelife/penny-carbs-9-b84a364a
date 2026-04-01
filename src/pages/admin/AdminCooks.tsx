@@ -196,6 +196,7 @@ const AdminCooks: React.FC = () => {
       kitchenName: '',
       mobileNumber: '',
       panchayatId: '',
+      assignedPanchayatIds: [],
       allowedOrderTypes: ['indoor_events', 'cloud_kitchen', 'homemade'],
       userId: '',
     },
