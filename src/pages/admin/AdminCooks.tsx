@@ -303,6 +303,28 @@ const AdminCooks: React.FC = () => {
         throw new Error('A cook with this mobile number already exists');
       }
 
+      // Check if cook with this kitchen name already exists
+      const { data: existingKitchen } = await supabase
+        .from('cooks')
+        .select('id')
+        .eq('kitchen_name', data.kitchenName)
+        .maybeSingle();
+      
+      if (existingKitchen) {
+        throw new Error('A cook with this kitchen name already exists. Please use a unique kitchen name.');
+      }
+
+      // Check if user is already registered as a cook
+      const { data: existingCookUser } = await supabase
+        .from('cooks')
+        .select('id')
+        .eq('user_id', data.userId)
+        .maybeSingle();
+      
+      if (existingCookUser) {
+        throw new Error('This user is already registered as a cook');
+      }
+
       // Check if user is already a delivery staff
       const { data: existingDelivery } = await supabase
         .from('delivery_staff')
@@ -335,7 +357,7 @@ const AdminCooks: React.FC = () => {
         .upsert({
           user_id: data.userId,
           role: 'cook',
-        }, { onConflict: 'user_id' });
+        }, { onConflict: 'user_id,role' });
 
       toast({
         title: "Cook Registered",
