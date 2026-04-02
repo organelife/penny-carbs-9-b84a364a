@@ -75,6 +75,27 @@ const Index: React.FC = () => {
         )}
       </main>
 
+      <PendingCartDialog
+        open={showPendingCart}
+        onOpenChange={(open) => {
+          setShowPendingCart(open);
+          if (!open) sessionStorage.setItem('pending_cart_dismissed', 'true');
+        }}
+        cartItemCount={itemCount}
+        onContinue={() => {
+          setShowPendingCart(false);
+          sessionStorage.setItem('pending_cart_dismissed', 'true');
+        }}
+        onClearCart={async () => {
+          await clearCart();
+          setShowPendingCart(false);
+          sessionStorage.setItem('pending_cart_dismissed', 'true');
+        }}
+        onViewCart={() => {
+          setShowPendingCart(false);
+          navigate('/cart');
+        }}
+      />
       <CartButton />
       <BottomNav />
     </div>
