@@ -211,7 +211,7 @@ const ItemDetail: React.FC = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
-      <header className="absolute left-0 right-0 top-0 z-50 p-4">
+      <header className="absolute left-0 right-0 top-0 z-50 flex items-center justify-between p-4">
         <Button
           variant="secondary"
           size="icon"
@@ -220,6 +220,34 @@ const ItemDetail: React.FC = () => {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="icon"
+            className="rounded-full bg-card/90 shadow-md backdrop-blur"
+            onClick={() => {
+              const url = window.location.href;
+              navigator.clipboard.writeText(url);
+              setCopied(true);
+              toast.success('Link copied!');
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            {copied ? <Check className="h-5 w-5 text-green-600" /> : <Copy className="h-5 w-5" />}
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="rounded-full bg-card/90 shadow-md backdrop-blur"
+            onClick={() => {
+              const url = window.location.href;
+              const text = `Check out ${item?.name || 'this item'}! ${url}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }}
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
 
       {/* Image Carousel */}
