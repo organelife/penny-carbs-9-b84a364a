@@ -168,7 +168,7 @@ const Orders: React.FC = () => {
                       <span className="text-sm text-muted-foreground">
                         {order.service_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </span>
-                      <span className="font-semibold">₹{order.customerTotal ?? order.total_amount}</span>
+                      <span className="font-semibold">₹{(order.customerTotal ?? order.total_amount) + (order.delivery_amount || 0)}</span>
                     </div>
                   </CardContent>
                 </Card>
