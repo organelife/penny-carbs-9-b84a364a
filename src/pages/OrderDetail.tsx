@@ -283,12 +283,18 @@ const OrderDetail: React.FC = () => {
                 );
               })}
             </div>
-            <div className="mt-4 flex justify-between border-t pt-3">
+            {(order.delivery_amount || 0) > 0 && (
+              <div className="mt-4 flex justify-between border-t pt-3">
+                <p className="text-sm text-muted-foreground">Delivery Charge</p>
+                <p className="text-sm">₹{order.delivery_amount}</p>
+              </div>
+            )}
+            <div className={`flex justify-between ${(order.delivery_amount || 0) > 0 ? 'mt-2 border-t pt-3' : 'mt-4 border-t pt-3'}`}>
               <p className="font-semibold">Total</p>
               <p className="font-semibold text-primary">
-                ₹{orderItems.length > 0
+                ₹{(orderItems.length > 0
                   ? orderItems.reduce((sum, item) => sum + getCustomerUnitPrice(item) * item.quantity, 0)
-                  : order.total_amount}
+                  : order.total_amount) + (order.delivery_amount || 0)}
               </p>
             </div>
           </CardContent>
