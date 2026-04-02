@@ -573,6 +573,16 @@ const ItemDetail: React.FC = () => {
           navigate('/cart');
         }}
       />
+
+      {/* Login Dialog for unauthenticated users */}
+      <CustomerLoginDialog
+        open={showLoginDialog}
+        onOpenChange={(open) => {
+          setShowLoginDialog(open);
+        }}
+        title="ലോഗിൻ ആവശ്യമാണ്"
+        message="മൊബൈൽ നമ്പറും പഞ്ചായത്തും നൽകിയാൽ മാത്രമേ നിങ്ങളുടെ പരിസരത്തു ഡെലിവറി ഉണ്ടോ എന്ന് മനസ്സിലാക്കൂ"
+      />
     </div>
   );
 };
