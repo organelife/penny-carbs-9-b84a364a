@@ -2,23 +2,19 @@
 
 ## Problem
 
-The screenshot shows a **404: NOT_FOUND** error on the Vercel-deployed site (`penny-carbs.vercel.app`) when accessing a direct URL like `/item/:id`. This is a classic SPA routing issue -- Vercel doesn't know to serve `index.html` for client-side routes, so it returns a 404.
+The customer orders page (`/orders`) and order detail page show totals **without the delivery charge**. The `delivery_amount` field exists on the `orders` table but is not added to the displayed total.
 
-The share buttons in the app work correctly (copy link, Web Share API), but when the recipient opens the link, Vercel can't find a matching file and returns 404.
+## Fix
 
-## Solution
+### 1. Orders list page (`src/pages/Orders.tsx`)
+- On line 171, where the total is displayed as `order.customerTotal ?? order.total_amount`, add `order.delivery_amount` (defaults to 0) to the displayed value.
 
-Add a `vercel.json` file to the project root with a catch-all rewrite rule that directs all routes to `index.html`, allowing React Router to handle them client-side.
+### 2. Order detail page (`src/pages/OrderDetail.tsx`)
+- In the Order Items card total section (~line 278), add the delivery charge to the computed total.
+- Add a visible "Delivery Charge" line item before the final total so customers can see the breakdown.
 
-### File to create: `vercel.json`
-
-```json
-{
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
-
-This is a single-file change. No other modifications needed.
+### Technical detail
+- `order.delivery_amount` is a nullable numeric field (default 0) on the `orders` table.
+- Both pages already fetch `orders.*`, so no additional query changes needed.
+- The delivery charge line will show as `₹0` or be hidden when there's no charge.
 
