@@ -83,6 +83,7 @@ const CustomerLoginDialog: React.FC<CustomerLoginDialogProps> = ({
   const { panchayats, getWardsForPanchayat, isLoading: locationLoading } = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
+  const [isSignupMode, setIsSignupMode] = useState(false);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
