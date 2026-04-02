@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLocation } from '@/contexts/LocationContext';
 import type { FoodItemWithImages } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -14,15 +15,17 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { ArrowLeft, Plus, Minus, Clock, Leaf, ShoppingCart, CalendarHeart, Lock, Share2, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Clock, Leaf, ShoppingCart, CalendarHeart, Lock, Share2, Copy, Check, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculatePlatformMargin } from '@/lib/priceUtils';
 import CookSelector, { type CookOption } from '@/components/customer/CookSelector';
+import PendingCartDialog from '@/components/customer/PendingCartDialog';
 
 const ItemDetail: React.FC = () => {
   const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
-  const { addToCart, items: cartItems, updateQuantity } = useCart();
+  const { addToCart, items: cartItems, updateQuantity, clearCart } = useCart();
+  const { user } = useAuth();
   
   const [item, setItem] = useState<FoodItemWithImages | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,10 +33,15 @@ const ItemDetail: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [availableCooks, setAvailableCooks] = useState<CookOption[]>([]);
   const [selectedCookId, setSelectedCookId] = useState<string | null>(null);
+  const [showPendingCartDialog, setShowPendingCartDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'add' | 'buy' | null>(null);
   const { selectedPanchayat } = useLocation();
 
   const cartItem = cartItems.find(ci => ci.food_item_id === itemId);
   const currentCartQuantity = cartItem?.quantity || 0;
+
+  // Check if cart has items from a different context (other items)
+  const hasOtherCartItems = cartItems.length > 0 && !cartItem;
 
   useEffect(() => {
     const fetchItem = async () => {
@@ -69,7 +77,6 @@ const ItemDetail: React.FC = () => {
             .eq('food_item_id', itemId);
 
           if (!cooksError && cookDishes) {
-            // Fetch features for all cook_dish ids
             const cookDishIds = cookDishes.map((cd: any) => cd.id);
             let featuresMap: Record<string, string[]> = {};
             if (cookDishIds.length > 0) {
@@ -124,14 +131,16 @@ const ItemDetail: React.FC = () => {
   const isIndoorEvents = item?.service_type === 'indoor_events';
   const isComingSoon = isHomemade ? (item as any)?.is_coming_soon_home_delivery === true : (item as any)?.is_coming_soon_cloud_kitchen === true;
 
-  // Calculate customer price - use selected cook's custom_price if available, else lowest cook price
+  // Multi-cook: require selection
+  const needsCookSelection = isHomemade && availableCooks.length > 1 && !selectedCookId;
+  const noCooksAvailable = isHomemade && availableCooks.length === 0 && !isLoading;
+
   const customerPrice = useMemo(() => {
     if (!item) return 0;
     const itemWithMargin = item as FoodItemWithImages & { platform_margin_type?: string; platform_margin_value?: number };
     const marginType = (itemWithMargin.platform_margin_type || 'percent') as 'percent' | 'fixed';
     const marginValue = itemWithMargin.platform_margin_value || 0;
 
-    // Determine the base price to use
     let basePrice = item.price;
     if (isHomemade && availableCooks.length > 0) {
       if (selectedCookId) {
@@ -140,7 +149,6 @@ const ItemDetail: React.FC = () => {
           basePrice = selectedCook.custom_price;
         }
       } else {
-        // Show the lowest available cook price
         const lowestPrice = Math.min(
           ...availableCooks.map(c => c.custom_price ?? item.price)
         );
@@ -152,20 +160,82 @@ const ItemDetail: React.FC = () => {
     return basePrice + margin;
   }, [item, selectedCookId, availableCooks, isHomemade]);
 
+  const getResolvedCookId = () => {
+    let cookId = selectedCookId;
+    if (isHomemade && !cookId && availableCooks.length === 1) {
+      cookId = availableCooks[0].cook_id;
+    }
+    return cookId;
+  };
+
   const handleAddToCart = async () => {
     if (!item) return;
-    // For homemade items without a selected cook, auto-select lowest price cook
-    let cookId = selectedCookId;
-    if (isHomemade && !cookId && availableCooks.length > 0) {
-      const sorted = [...availableCooks].sort((a, b) => {
-        const priceA = a.custom_price ?? item.price;
-        const priceB = b.custom_price ?? item.price;
-        return priceA - priceB;
-      });
-      cookId = sorted[0].cook_id;
+    if (needsCookSelection) {
+      toast.error('Please select a cook first');
+      return;
     }
+    // Check for pending cart items
+    if (hasOtherCartItems && user) {
+      setPendingAction('add');
+      setShowPendingCartDialog(true);
+      return;
+    }
+    await performAddToCart();
+  };
+
+  const performAddToCart = async () => {
+    if (!item) return;
+    const cookId = getResolvedCookId();
     await addToCart(item.id, quantity, cookId);
     navigate(-1);
+  };
+
+  const handleBuyNow = async () => {
+    if (!item) return;
+    if (needsCookSelection) {
+      toast.error('Please select a cook first');
+      return;
+    }
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    // Check for pending cart items
+    if (hasOtherCartItems) {
+      setPendingAction('buy');
+      setShowPendingCartDialog(true);
+      return;
+    }
+    await performBuyNow();
+  };
+
+  const performBuyNow = async () => {
+    if (!item) return;
+    const cookId = getResolvedCookId();
+    await addToCart(item.id, quantity, cookId);
+    navigate('/checkout');
+  };
+
+  const handlePendingCartContinue = async () => {
+    // Keep existing cart items and proceed
+    setShowPendingCartDialog(false);
+    if (pendingAction === 'add') {
+      await performAddToCart();
+    } else if (pendingAction === 'buy') {
+      await performBuyNow();
+    }
+    setPendingAction(null);
+  };
+
+  const handlePendingCartClear = async () => {
+    await clearCart();
+    setShowPendingCartDialog(false);
+    if (pendingAction === 'add') {
+      await performAddToCart();
+    } else if (pendingAction === 'buy') {
+      await performBuyNow();
+    }
+    setPendingAction(null);
   };
 
   const handleUpdateCart = async (newQuantity: number) => {
@@ -203,10 +273,6 @@ const ItemDetail: React.FC = () => {
     if (b.is_primary) return 1;
     return a.display_order - b.display_order;
   }) || [];
-
-  // For homemade items with multiple cooks, require cook selection
-  const needsCookSelection = isHomemade && availableCooks.length > 1 && !selectedCookId;
-  const noCooksAvailable = isHomemade && availableCooks.length === 0 && !isLoading;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -319,6 +385,9 @@ const ItemDetail: React.FC = () => {
           {isIndoorEvents && (
             <span className="ml-2 text-sm text-muted-foreground">per plate</span>
           )}
+          {needsCookSelection && (
+            <span className="ml-2 text-sm text-muted-foreground">(starting from)</span>
+          )}
         </div>
 
         {/* Cook Selection for Homemade items */}
@@ -331,6 +400,13 @@ const ItemDetail: React.FC = () => {
             platformMarginType={(item as any).platform_margin_type || 'percent'}
             platformMarginValue={(item as any).platform_margin_value || 0}
           />
+        )}
+
+        {/* Cook selection hint */}
+        {needsCookSelection && (
+          <p className="mt-2 text-sm text-destructive font-medium">
+            ⚠️ Please select a cook above to add to cart
+          </p>
         )}
 
         {/* Indoor Events Notice */}
@@ -398,34 +474,63 @@ const ItemDetail: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center rounded-lg border">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12 rounded-r-none"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+          <div className="space-y-2">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center rounded-lg border">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-12 w-12 rounded-r-none"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-12 text-center text-lg font-semibold">
+                  {quantity}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-12 w-12 rounded-l-none"
+                  onClick={() => setQuantity(quantity + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button 
+                className="flex-1 h-12 text-base" 
+                onClick={handleAddToCart}
+                disabled={needsCookSelection}
               >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="w-12 text-center text-lg font-semibold">
-                {quantity}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12 rounded-l-none"
-                onClick={() => setQuantity(quantity + 1)}
-              >
-                <Plus className="h-4 w-4" />
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Add to Cart - ₹{(customerPrice * quantity).toFixed(0)}
               </Button>
             </div>
-            <Button className="flex-1 h-12 text-base" onClick={handleAddToCart}>
-              Add to Cart - ₹{(customerPrice * quantity).toFixed(0)}
+            <Button 
+              variant="outline"
+              className="w-full h-10 text-sm border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              onClick={handleBuyNow}
+              disabled={needsCookSelection}
+            >
+              <Zap className="mr-2 h-4 w-4" />
+              Buy Now - ₹{(customerPrice * quantity).toFixed(0)}
             </Button>
           </div>
         )}
       </div>
+
+      {/* Pending Cart Dialog */}
+      <PendingCartDialog
+        open={showPendingCartDialog}
+        onOpenChange={setShowPendingCartDialog}
+        cartItemCount={cartItems.length}
+        onContinue={handlePendingCartContinue}
+        onClearCart={handlePendingCartClear}
+        onViewCart={() => {
+          setShowPendingCartDialog(false);
+          navigate('/cart');
+        }}
+      />
     </div>
   );
 };
