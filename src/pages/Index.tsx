@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import AppHeader from '@/components/customer/AppHeader';
 import OperationalModules from '@/components/customer/OperationalModules';
 import BannerCarousel from '@/components/customer/BannerCarousel';
@@ -9,26 +8,11 @@ import ServiceCards from '@/components/customer/ServiceCards';
 import PopularItems from '@/components/customer/PopularItems';
 import CartButton from '@/components/customer/CartButton';
 import BottomNav from '@/components/customer/BottomNav';
-import PendingCartDialog from '@/components/customer/PendingCartDialog';
+import PendingCartBanner from '@/components/customer/PendingCartBanner';
 import { useActiveServiceTypes } from '@/hooks/useServiceModules';
-import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/contexts/AuthContext';
 
 const Index: React.FC = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { items, itemCount, clearCart } = useCart();
-  const [showPendingCart, setShowPendingCart] = useState(false);
   const { data: activeTypes } = useActiveServiceTypes();
-
-  useEffect(() => {
-    if (user && itemCount > 0) {
-      const dismissed = sessionStorage.getItem('pending_cart_dismissed');
-      if (!dismissed) {
-        setShowPendingCart(true);
-      }
-    }
-  }, [user, itemCount]);
 
   const handleSearch = (query: string) => {
     console.log('Search:', query);
