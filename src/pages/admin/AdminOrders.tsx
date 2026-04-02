@@ -10,7 +10,7 @@ const AdminOrders: React.FC = () => {
     <div className="min-h-screen bg-background pb-6">
       <AdminNavbar />
 
-      <main className="p-4 space-y-4">
+      <main className="p-4 pt-28 space-y-4">
         <h1 className="text-2xl font-bold">Orders Management</h1>
 
         <Tabs defaultValue="all" className="w-full">
