@@ -1,44 +1,54 @@
 
+I checked the actual code and the issue is a bit bigger than just one filter.
 
-## Problem
+What I found
+- `src/hooks/useCook.ts` already does the frontend safety check: it fetches `orders.status` and filters out `status === 'cancelled'`.
+- But the connected Supabase context shows the cancellation function exists while the database currently has no trigger on `public.orders`, so the backend sync is not reliably active.
+- The cook dashboard is also stale in real time:
+  - `useCookOrders` only refreshes every 2 minutes.
+  - `src/hooks/useCookNotifications.ts` only listens for `INSERT` on `order_assigned_cooks`.
+  - The notification loader/popup never checks `orders.status`, so a cancelled order can stay visible in the “New Order Assignment” modal or active list until refresh/timer expiry.
 
-When a customer cancels an order, only `orders.status` is updated to `cancelled`. The `order_assigned_cooks` table (which the cook dashboard reads) still has `cook_status` as `pending`/`accepted`/`preparing`/`cooked`. The cook dashboard query filters by `order_assigned_cooks.cook_status` and never checks the parent order's `status`, so cancelled orders remain visible to cooks.
+Implementation plan
+1. Repair the database sync with a new follow-up migration
+   - Do not edit the old migration; add a new repair migration.
+   - Safely `DROP TRIGGER IF EXISTS on_order_cancelled ON public.orders`.
+   - Recreate the `on_order_cancelled` trigger to call `public.handle_order_cancellation()`.
+   - Add a one-time backfill so already-cancelled orders immediately update related `order_assigned_cooks` rows to `rejected`.
 
-## Solution
+2. Make cook dashboard update immediately
+   - Extend `src/hooks/useCookNotifications.ts` to subscribe to:
+     - `UPDATE` on `orders` and react when `status` becomes `cancelled`
+     - `UPDATE` on `order_assigned_cooks` for the current cook and react when `cook_status` becomes `rejected`
+   - On those events:
+     - invalidate `['cook-orders']`
+     - remove the matching order from local `pendingOrders`
+   - Keep the 2-minute polling only as fallback.
 
-Two-pronged fix for reliability:
+3. Stop cancelled orders from appearing in the popup
+   - In `fetchOrderDetails`, also select `status` from `orders`.
+   - If the parent order is already `cancelled`, return `null` instead of creating a pending notification card.
+   - In the initial pending-loader, skip any assignment whose order is cancelled.
 
-### 1. Database trigger (migration)
-Create a trigger on the `orders` table that automatically updates all related `order_assigned_cooks` rows to `rejected` (or a new status) when an order is cancelled:
+4. Keep the existing defense-in-depth filter
+   - Leave the `useCookOrders` cancelled-order filter in place.
+   - Optionally clean up the typing so the hook no longer needs `(o as any).status`.
 
-```sql
-CREATE OR REPLACE FUNCTION public.handle_order_cancellation()
-RETURNS trigger AS $$
-BEGIN
-  IF NEW.status = 'cancelled' AND OLD.status != 'cancelled' THEN
-    UPDATE public.order_assigned_cooks
-    SET cook_status = 'rejected'
-    WHERE order_id = NEW.id
-      AND cook_status NOT IN ('rejected');
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+Files likely affected
+- `supabase/migrations/<new_repair_migration>.sql`
+- `src/hooks/useCookNotifications.ts`
+- possibly a small cleanup in `src/hooks/useCook.ts` and/or `src/types/cook.ts`
 
-CREATE TRIGGER on_order_cancelled
-  BEFORE UPDATE ON public.orders
-  FOR EACH ROW
-  WHEN (NEW.status = 'cancelled' AND OLD.status IS DISTINCT FROM 'cancelled')
-  EXECUTE FUNCTION public.handle_order_cancellation();
+Expected result
+```text
+customer cancels order
+  -> orders.status = cancelled
+  -> DB trigger sets order_assigned_cooks.cook_status = rejected
+  -> realtime invalidates cook queries and removes popup item
+  -> cancelled order disappears immediately from /cook/dashboard
 ```
 
-### 2. Frontend filter (defense in depth)
-Update `useCookOrders` in `src/hooks/useCook.ts` to also fetch `orders.status` and filter out orders where the parent order status is `cancelled`. This handles any existing stale data.
-
-- In the orders query (~line 77), add `status` to the select fields
-- After merging, filter out orders where `order.status === 'cancelled'`
-
-### Files changed
-- **New migration**: trigger to sync cancellation to `order_assigned_cooks`
-- **Edit**: `src/hooks/useCook.ts` — add `status` field to query and filter cancelled orders
-
+Validation to run after implementation
+- Cancel a pending order while the cook popup is open: popup item should disappear immediately.
+- Cancel an accepted/preparing/cooked order: it should disappear from the Active tab without waiting 2 minutes.
+- Reload `/cook/dashboard`: the cancelled order should not come back.
