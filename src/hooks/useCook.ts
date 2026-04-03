@@ -79,6 +79,7 @@ export function useCookOrders() {
         .select(`
           id,
           order_number,
+          status,
           service_type,
           total_amount,
           event_date,
