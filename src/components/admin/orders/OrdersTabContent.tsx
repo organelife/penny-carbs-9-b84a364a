@@ -72,6 +72,7 @@ const OrdersTabContent: React.FC<OrdersTabContentProps> = ({ serviceType }) => {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<OrderWithProfile | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [orderDetails, setOrderDetails] = useState<Record<string, OrderDetail>>({});
   const [loadingDetails, setLoadingDetails] = useState<Record<string, boolean>>({});
