@@ -1,26 +1,64 @@
 
 
 ## Problem
+The cook dashboard's "My Allocated Dishes" section has no image upload functionality. Cooks cannot add or update images for their allocated dishes.
 
-The `/admin/storage-settings` page restricts access to `super_admin` role only. If you're logged in as `admin`, you see the "Access Denied" screen. The route, database table, and dashboard link are all correctly set up.
+## Root Cause
+- `CookAllocatedDishes.tsx` does not include the `ImageUpload` component
+- The `useCookAllocatedDishes` hook does not fetch `food_item_images`
+- There are likely no RLS policies on `food_item_images` allowing cook-role inserts
 
-## Solution
+## Plan
 
-Allow both `admin` and `super_admin` roles to access the Storage Settings page, consistent with the RLS policy on the `storage_providers` table which already grants access to both roles.
+### 1. Database: Add RLS policy for cooks on `food_item_images`
+Create a migration allowing cooks to insert/update/delete images for food items they are allocated via `cook_dishes`.
 
-### Changes
+```sql
+-- Allow cooks to manage images for their allocated dishes
+CREATE POLICY "Cooks can insert images for their dishes"
+ON public.food_item_images FOR INSERT TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.cook_dishes cd
+    JOIN public.cooks c ON c.id = cd.cook_id
+    WHERE cd.food_item_id = food_item_images.food_item_id
+      AND c.user_id = auth.uid()
+  )
+);
 
-**1. Update `src/pages/admin/AdminStorageSettings.tsx`**
-- Change the access check from `role === 'super_admin'` to `role === 'super_admin' || role === 'admin'`
-- Update the "Access Denied" message accordingly
+CREATE POLICY "Cooks can delete images for their dishes"
+ON public.food_item_images FOR DELETE TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.cook_dishes cd
+    JOIN public.cooks c ON c.id = cd.cook_id
+    WHERE cd.food_item_id = food_item_images.food_item_id
+      AND c.user_id = auth.uid()
+  )
+);
+```
 
-**2. Update `src/pages/admin/AdminDashboard.tsx`**
-- Move the "Storage Settings" card from the `superAdminUtilities` array (shown only to super_admins) into the general `managementCards` array, so all admins can see and access it
+Also add a storage policy on the `food-items` bucket for cook uploads if missing.
 
-**3. Add nav link in `src/components/admin/AdminNavbar.tsx`**
-- Add a "Storage" nav item for admin/super_admin roles so it's accessible from the top navigation bar on all admin pages
+### 2. Update `useCookAllocatedDishes` hook
+Add `food_item_images` to the select query so existing images are fetched:
+```
+food_item:food_items(id, name, price, ..., images:food_item_images(id, image_url, is_primary))
+```
 
-### Technical detail
-- The database RLS policy already allows both `admin` and `super_admin` to manage `storage_providers`, so no database changes needed
-- The `useStorageProviders` hook uses `as any` casts since `storage_providers` isn't in the generated Supabase types — this works fine at runtime
+### 3. Update `CookAllocatedDishes.tsx`
+- Import `ImageUpload` component
+- For each dish card, show the current dish image (from `food_item_images`) and an `ImageUpload` button
+- On upload complete: upsert into `food_item_images` (delete existing, insert new with `is_primary: true`)
+- On remove: delete from `food_item_images`
+- Invalidate query on success
+
+### 4. Update `CookDish` type
+Add optional `images` array to the `food_item` nested type in `src/types/cook-dishes.ts`.
+
+### Files Changed
+- `src/types/cook-dishes.ts` — add images to food_item type
+- `src/hooks/useCookDishes.ts` — include food_item_images in query
+- `src/components/cook/CookAllocatedDishes.tsx` — add ImageUpload per dish
+- New migration — RLS policies for cook image management
 
