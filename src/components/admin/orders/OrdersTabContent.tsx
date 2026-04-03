@@ -30,6 +30,7 @@ interface OrderWithProfile extends Order {
   };
   service_charge_amount?: number | null;
   guest_count?: number | null;
+  cancellation_reason?: string | null;
 }
 
 interface OrderItemDetail {
