@@ -47,11 +47,14 @@ export function useCookNotifications() {
   const fetchOrderDetails = useCallback(async (orderId: string): Promise<PendingCookOrder | null> => {
     const { data: order, error } = await supabase
       .from('orders')
-      .select('id, order_number, service_type, total_amount, event_date, event_details, delivery_address, guest_count, created_at, customer_id')
+      .select('id, order_number, status, service_type, total_amount, event_date, event_details, delivery_address, guest_count, created_at, customer_id')
       .eq('id', orderId)
       .maybeSingle();
 
     if (error || !order) return null;
+
+    // Skip cancelled orders
+    if (order.status === 'cancelled') return null;
 
     // Get customer info
     const { data: customer } = await supabase
@@ -84,7 +87,7 @@ export function useCookNotifications() {
     };
   }, []);
 
-  // Subscribe to real-time assignment changes
+  // Subscribe to real-time assignment changes + cancellation updates
   useEffect(() => {
     if (!profile?.id) return;
 
@@ -112,7 +115,40 @@ export function useCookNotifications() {
             });
             setShowAlert(true);
             playNotificationSound();
-            showBrowserNotification(orderDetails); // Trigger browser notification
+            showBrowserNotification(orderDetails);
+            queryClient.invalidateQueries({ queryKey: ['cook-orders'] });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'order_assigned_cooks',
+          filter: `cook_id=eq.${profile.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.cook_status === 'rejected') {
+            console.log('[CookNotifications] Assignment rejected/cancelled:', updated.order_id);
+            setPendingOrders(prev => prev.filter(o => o.id !== updated.order_id));
+            queryClient.invalidateQueries({ queryKey: ['cook-orders'] });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.status === 'cancelled') {
+            console.log('[CookNotifications] Order cancelled:', updated.id);
+            setPendingOrders(prev => prev.filter(o => o.id !== updated.id));
             queryClient.invalidateQueries({ queryKey: ['cook-orders'] });
           }
         }
