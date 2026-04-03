@@ -136,7 +136,8 @@ export function useCookOrders() {
         };
       }));
       
-      return ordersWithDetails as CookOrder[];
+      // Filter out cancelled orders as defense in depth
+      return ordersWithDetails.filter(o => (o as any).status !== 'cancelled') as CookOrder[];
     },
     enabled: !!profile?.id,
     refetchInterval: 2 * 60 * 1000, // Auto-refresh every 2 minutes
