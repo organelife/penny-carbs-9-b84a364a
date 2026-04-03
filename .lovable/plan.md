@@ -1,35 +1,26 @@
 
 
-## Storage Settings for External Providers
+## Problem
 
-Based on the `pennyekart-1` repository, the other project has a `StorageConfigPage.tsx` that allows admins to configure external storage providers (Cloudinary, AWS S3, ImageKit, Backblaze, DigitalOcean Spaces, Wasabi, Custom) with credentials stored in a `storage_providers` database table. The current project only uses Supabase Storage.
+The `/admin/storage-settings` page restricts access to `super_admin` role only. If you're logged in as `admin`, you see the "Access Denied" screen. The route, database table, and dashboard link are all correctly set up.
 
-### What will be built
+## Solution
 
-An admin page at `/admin/storage-settings` where super_admins can:
-- Add external storage providers (Cloudinary, AWS S3, ImageKit, Backblaze, DigitalOcean Spaces, Wasabi, or Custom)
-- Configure credentials for each provider
-- Enable/disable providers and set priority order
-- Delete providers
-- The system will use the highest-priority enabled provider for uploads, falling back to Supabase Storage
+Allow both `admin` and `super_admin` roles to access the Storage Settings page, consistent with the RLS policy on the `storage_providers` table which already grants access to both roles.
 
-### Technical Steps
+### Changes
 
-1. **Database Migration** - Create `storage_providers` table:
-   - `id` (uuid, PK), `provider_name` (text), `is_enabled` (boolean), `priority` (integer), `credentials` (jsonb), `created_at`, `updated_at`
-   - RLS: only super_admin/admin can read/write
+**1. Update `src/pages/admin/AdminStorageSettings.tsx`**
+- Change the access check from `role === 'super_admin'` to `role === 'super_admin' || role === 'admin'`
+- Update the "Access Denied" message accordingly
 
-2. **New Page: `src/pages/admin/AdminStorageSettings.tsx`** - Adapted from the pennyekart-1 `StorageConfigPage.tsx`:
-   - List configured providers with enable/disable toggle, priority, credential fields
-   - Add Provider dialog with preset options (Cloudinary, S3, ImageKit, Backblaze, DO Spaces, Wasabi, Custom)
-   - Save, delete functionality
-   - Uses existing `AdminNavbar` pattern instead of `AdminLayout`
+**2. Update `src/pages/admin/AdminDashboard.tsx`**
+- Move the "Storage Settings" card from the `superAdminUtilities` array (shown only to super_admins) into the general `managementCards` array, so all admins can see and access it
 
-3. **Update `src/App.tsx`** - Add route `/admin/storage-settings`
+**3. Add nav link in `src/components/admin/AdminNavbar.tsx`**
+- Add a "Storage" nav item for admin/super_admin roles so it's accessible from the top navigation bar on all admin pages
 
-4. **Update `src/pages/admin/AdminDashboard.tsx`** - Add "Storage Settings" card to super_admin utilities section
-
-5. **Update `src/components/admin/ImageUpload.tsx`** - Add logic to check for an enabled external provider and upload there first (Cloudinary via unsigned upload preset), falling back to Supabase Storage. For Cloudinary specifically, upload via `https://api.cloudinary.com/v1_1/{cloud_name}/image/upload`.
-
-6. **Update Supabase types** - Add `storage_providers` table type to match the new schema
+### Technical detail
+- The database RLS policy already allows both `admin` and `super_admin` to manage `storage_providers`, so no database changes needed
+- The `useStorageProviders` hook uses `as any` casts since `storage_providers` isn't in the generated Supabase types — this works fine at runtime
 
