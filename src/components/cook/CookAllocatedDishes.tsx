@@ -158,7 +158,7 @@ const CookAllocatedDishes: React.FC = () => {
                   <DishMediaManager
                     cookDishId={dish.id}
                     images={dish.images || []}
-                    youtubeVideoUrl={(dish as any).youtube_video_url || null}
+                    youtubeVideoUrl={dish.youtube_video_url || null}
                   />
                 </div>
               );
