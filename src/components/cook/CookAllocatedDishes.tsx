@@ -155,16 +155,11 @@ const CookAllocatedDishes: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-1">
-                    <p className="text-xs text-muted-foreground mb-1">Dish Image</p>
-                    <ImageUpload
-                      bucket="food-items"
-                      folder={`cook-dishes/${dish.id}`}
-                      currentImageUrl={currentImage}
-                      onUploadComplete={(url) => handleImageUpload(dish.id, url)}
-                      onRemove={() => handleImageRemove(dish.id)}
-                    />
-                  </div>
+                  <DishMediaManager
+                    cookDishId={dish.id}
+                    images={dish.images || []}
+                    youtubeVideoUrl={(dish as any).youtube_video_url || null}
+                  />
                 </div>
               );
             })}
