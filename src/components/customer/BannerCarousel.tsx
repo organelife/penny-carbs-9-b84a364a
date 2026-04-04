@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import type { Banner } from '@/types/database';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,8 +12,12 @@ import {
 } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 const BannerCarousel: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
