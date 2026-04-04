@@ -87,7 +87,6 @@ const CookAllocatedDishes: React.FC = () => {
               const basePrice = dish.food_item?.price || 0;
               const isEditing = editingId === dish.id;
               const displayPrice = dish.custom_price ?? basePrice;
-              const currentImage = dish.images?.[0]?.image_url || null;
 
               return (
                 <div key={dish.id} className="p-3 rounded-lg border bg-card space-y-2">
