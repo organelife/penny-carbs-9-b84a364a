@@ -138,7 +138,7 @@ const ItemDetail: React.FC = () => {
     };
 
     fetchItem();
-  }, [itemId]);
+  }, [itemId, selectedPanchayat?.id]);
 
   const serviceTypes = (item as any)?.service_types || [];
   const isHomemade = item?.service_type === 'homemade' || serviceTypes.includes('homemade');
