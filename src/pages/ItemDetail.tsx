@@ -202,11 +202,15 @@ const ItemDetail: React.FC = () => {
 
   const handleAddToCart = async () => {
     if (!item) return;
+    if (!user) {
+      setShowLoginDialog(true);
+      return;
+    }
     if (needsCookSelection) {
       toast.error('Please select a cook first');
       return;
     }
-    if (hasOtherCartItems && user) {
+    if (hasOtherCartItems) {
       setPendingAction('add');
       setShowPendingCartDialog(true);
       return;
