@@ -106,7 +106,8 @@ const ItemDetail: React.FC = () => {
               id,
               cook_id,
               custom_price,
-              cooks!inner(id, kitchen_name, rating, total_orders, is_active, is_available, panchayat_id, assigned_panchayat_ids)
+              cooks!inner(id, kitchen_name, rating, total_orders, is_active, is_available, panchayat_id, assigned_panchayat_ids),
+              cook_dish_images(id, image_url, display_order)
             `)
             .eq('food_item_id', itemId);
 
@@ -142,6 +143,7 @@ const ItemDetail: React.FC = () => {
                 total_orders: cd.cooks.total_orders,
                 custom_price: cd.custom_price as number | null,
                 features: featuresMap[cd.id] || [],
+                images: cd.cook_dish_images || [],
               }));
             setAvailableCooks(activeCooks);
             if (activeCooks.length === 1) {
