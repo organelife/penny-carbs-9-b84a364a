@@ -143,6 +143,7 @@ const ItemDetail: React.FC = () => {
                 total_orders: cd.cooks.total_orders,
                 custom_price: cd.custom_price as number | null,
                 features: featuresMap[cd.id] || [],
+                images: cd.cook_dish_images || [],
               }));
             setAvailableCooks(activeCooks);
             if (activeCooks.length === 1) {
