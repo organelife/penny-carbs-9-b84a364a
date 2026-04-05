@@ -111,13 +111,17 @@ const CookSelector: React.FC<CookSelectorProps> = ({ cooks, selectedCookId, onSe
                 </div>
                 {cookImages.length > 0 && (
                   <div className="mt-2 flex gap-2 overflow-x-auto pl-8">
-                    {cookImages.map((img) => (
+                    {cookImages.map((img, idx) => (
                       <img
                         key={img.id}
                         src={img.image_url}
                         alt={`${cook.kitchen_name} dish`}
-                        className="h-16 w-16 rounded-md object-cover border flex-shrink-0"
+                        className="h-16 w-16 rounded-md object-cover border flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                         loading="lazy"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openLightbox(cookImages, idx);
+                        }}
                       />
                     ))}
                   </div>
